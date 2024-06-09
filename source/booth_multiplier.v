@@ -52,9 +52,16 @@
 /* verilator lint_off UNUSEDSIGNAL */
 
 module booth_multiplier(
-    input clk,
-    input signed[7:0] multiplier, multiplicand,
+    input clk, select,
+    input signed[7:0] multIn,
     output signed [15:0] product);
+
+    reg signed[7:0] multiplier, multiplicand;
+    always @(posedge clk)
+        if (select)
+            multiplier <= multIn;
+        else
+            multiplicand <= multIn;
 
 	wire signed [7:0] Q[0:6];  //an 8 bit (1byte) array, with a depth of 7 (0 to 6 rows of 1 byte each)
 	wire signed [7:0] acc[0:7]; //an 8 bit (1byte) array, with a depth of 8 (0 to 7 rows of 1 byte each)

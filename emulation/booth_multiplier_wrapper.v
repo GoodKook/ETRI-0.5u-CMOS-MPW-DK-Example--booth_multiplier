@@ -33,22 +33,22 @@ module booth_multiplier_wrapper(Din_emu, Dout_emu, Addr_emu, load_emu, get_emu, 
     reg [7:0]   Dout_emu;
 
     // DUT interface: registered input
-    reg signed [7:0]  multiplier;
-    reg signed [7:0]  multiplicand;
+    reg signed [7:0]  multIn;
+    reg signed        select;
     // DUT interface: output wire. DUT's output will be captured
     wire signed [15:0] product;
 
     // Emulation Transactor ---------------------------------------------
-    //  stimIn[0] = multiplier
-    //  stimIn[1] = multiplicand
+    //  stimIn[0] = multIn
+    //  stimIn[1][0] = select
     // vectOut[0] = product[ 7:0]
     // vectOut[1] = product[15:8]
     always @(posedge clk_emu)
     begin
         if (load_emu)       // Set input stimulus to DUT
         begin
-            multiplier   <= stimIn[0];
-            multiplicand <= stimIn[1];
+            multIn <= stimIn[0];
+            select <= stimIn[1][0];
         end
         else if (get_emu)   // Capure output from DUT
         begin
@@ -65,7 +65,7 @@ module booth_multiplier_wrapper(Din_emu, Dout_emu, Addr_emu, load_emu, get_emu, 
     // DUT --------------------------------------------------------------
     booth_multiplier u_booth_multiplier (
         .clk(clk_dut),
-        .multiplier(multiplier),
-        .multiplicand(multiplicand),
+        .select(select),
+        .multIn(multIn),
         .product(product));
 endmodule

@@ -22,8 +22,8 @@ SC_MODULE(booth_multiplier)
 {
     // PORTS
     sc_in<bool>             clk;
-    sc_in<sc_uint<8> >      multiplier;
-    sc_in<sc_uint<8> >      multiplicand;
+    sc_in<bool>             select;
+    sc_in<sc_uint<8> >      multIn;
     sc_out<sc_uint<16> >    product;
 
     // Arduino Serial IF
@@ -43,10 +43,10 @@ SC_MODULE(booth_multiplier)
             //-------------------------------------------------------
             wait(clk.posedge_event());
             // Assemble bitmap for emulator input byte. Refer to Verilog wrapper
-            //  stimIn[0] = multiplier
-            //  stimIn[1] = multiplicand
-            txPacket[0] = (uint8_t)(multiplier.read());
-            txPacket[1] = (uint8_t)(multiplicand.read());
+            //  stimIn[0] = multiIn
+            //  stimIn[1][0] = select
+            txPacket[0] = (uint8_t)(multIn.read());
+            txPacket[1] = (uint8_t)(select.read() & 0x01);
 
             // Send to Emulator
             for (int i=0; i<N_TX; i++)

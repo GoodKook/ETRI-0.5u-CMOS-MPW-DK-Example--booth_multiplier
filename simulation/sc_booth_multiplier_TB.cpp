@@ -15,14 +15,15 @@ void sc_booth_multiplier_TB::test_generator() // SC_THREAD
 {
     gsl_rng *r = gsl_rng_alloc (gsl_rng_taus);
 
-    for (int n=0; n<10000; n++)
+    for (int n=0; n<5000; n++)
     {
+        multIn.write((uint8_t)(gsl_rng_uniform_int(r, 256)));
+        select.write(false);
         wait(clk.posedge_event());
-        
-        multiplier.write((int8_t)(gsl_rng_uniform (r)*256.0));
-        multiplicand.write((int8_t)(gsl_rng_uniform (r)*256.0));
 
-        if (n>10000) sc_stop();
+        multIn.write((uint8_t)(gsl_rng_uniform_int(r, 256)));
+        select.write(true);
+        wait(clk.posedge_event());
     }
 
     gsl_rng_free (r);
@@ -32,33 +33,52 @@ void sc_booth_multiplier_TB::test_generator() // SC_THREAD
 void sc_booth_multiplier_TB::monitor()    // SC_THREAD
 {
     static int n = 0;
-    int8_t  _multiplier   = (int8_t)multiplier.read();
-    int8_t  _multiplicand = (int8_t)multiplicand.read();
-    int16_t _product_dut  = (int16_t)product_dut.read();
-    int16_t _product_mult = _multiplicand * _multiplier;
+    int8_t  __multiplier, _multiplier;
+    int8_t  __multiplicand, _multiplicand;
+    int16_t _product_dut, _product_mult;
 #ifdef CO_EMULATION
-    int16_t _product_emu= product_emu.read();
+    int16_t _product_emu;
 #endif
 
     while(true)
     {
-        _multiplier   = (int8_t)multiplier.read();
-        _multiplicand = (int8_t)multiplicand.read();
-        _product_mult = _multiplicand * _multiplier;    // Reference, signed multiplier!
-
         wait(clk.posedge_event());
-
-        _product_dut  = (int16_t)product_dut.read();
+        if (select)
+        {
+            __multiplier  = _multiplier;
+            _multiplier   = (int8_t)multIn.read();
+        }
+        else
+        {
+            __multiplicand = _multiplicand;
+            _multiplicand  = (int8_t)multIn.read();
+        }
+        _product_mult = __multiplicand * __multiplier;    // Reference, signed multiplier!
+        _product_dut  = product_dut.read();
+#ifdef CO_EMULATION
+        _product_emu= product_emu.read();
+#endif
 
 #ifdef CO_EMULATION
-        int16_t _product_emu= product_emu.read();
-        printf("Iteration=%5d, multiplier=%5d, multiplicand=%5d, product=%7d[%7d]<%7d> ", n,
-                    _multiplier, _multiplicand, _product_dut, _product_mult, _product_emu);
-        if (_product_dut!=_product_emu)    cout << "Error ";
+        printf("Iteration=%5d, multiplier=%5d, multiplicand=%5d, product=%7d<%7d> ", n,
+                    _multiplier, _multiplicand, _product_dut, _product_emu);
+        if (_product_dut!=_product_emu)
+        {
+            Error.write(true);
+            cout << "Error ";
+        }
+        else
+            Error.write(false);
 #else
         printf("Iteration=%5d, multiplier=%5d, multiplicand=%5d, product=%7d[%7d] ", n,
-                    _multiplier, _multiplicand, _product_dut, _product_mult);
-        if (_product_mult!=_product_dut)    cout << "Error ";
+                    __multiplier, __multiplicand, _product_dut, _product_mult);
+        if (_product_mult!=_product_dut)
+        {
+            Error.write(true);
+            cout << "Error ";
+        }
+        else
+            Error.write(false);
 #endif
         cout << "@" << sc_time_stamp() << endl;
 
